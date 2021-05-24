@@ -43,31 +43,35 @@ ROBOTSTXT_OBEY = False
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-# SPIDER_MIDDLEWARES = {
-#    'spider.middlewares.SpiderSpiderMiddleware': 543,
-# }
+SPIDER_MIDDLEWARES = {
+    'spider.middlewares.SpiderSpiderMiddleware': None,
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-# DOWNLOADER_MIDDLEWARES = {
-#    'spider.middlewares.SpiderDownloaderMiddleware': 543,
-# }
+DOWNLOADER_MIDDLEWARES = {
+    'spider.middlewares.SpiderDownloaderMiddleware': None,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None,
+    'spider.middlewares.SpiderProxyMiddleware': 300
+}
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
-# EXTENSIONS = {
-#    'scrapy.extensions.telnet.TelnetConsole': None,
-# }
+EXTENSIONS = {
+   'scrapy.extensions.telnet.TelnetConsole': None,
+}
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-# ITEM_PIPELINES = {
-#    'spider.pipelines.SpiderPipeline': 300,
-# }
+ITEM_PIPELINES = {
+   'spider.pipelines.SpiderPipeline': 300,
+}
 
 REDIS_URL = 'redis://localhost:6379/1'
 REDIS_START_URLS_KEY = '%(name)s:start_urls'
 
+IS_PROXY = True  # 是否使用代理
+PROXY_REDIS_KEY = 'IP_PROXY'  # 代理存放队列
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 AUTOTHROTTLE_ENABLED = True

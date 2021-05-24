@@ -2,11 +2,14 @@
 #
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import time
 
 from scrapy import signals
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
+from scrapy.crawler import logger
+from scrapy_redis import connection
 
 
 class SpiderSpiderMiddleware:
@@ -101,3 +104,42 @@ class SpiderDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
+class SpiderUserAgentMiddleware(SpiderDownloaderMiddleware):
+    pass
+
+
+class SpiderProxyMiddleware(SpiderDownloaderMiddleware):
+
+    def __init__(self, server, settings):
+        self.server = server
+        self.settings = settings
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        settings = crawler.settings
+        server = connection.from_settings(settings)
+        s = cls(server, settings)
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def process_request(self, request, spider):
+        if self.settings.get('IS_PROXY'):
+            proxy_ip = self._add_proxy()
+            request.meta['proxy'] = proxy_ip
+        return None
+
+    def _add_proxy(self):
+        while True:
+            ip_str = self.server.lpop(self.settings.get('PROXY_REDIS_KEY'))
+            time_sleep = 10
+            if ip_str:
+                break
+            logger.info("未获取到代理ip,休眠{0}秒，等待下次获取~~~".format(time_sleep))
+            time.sleep(time_sleep)
+        proxy_ip = 'http://{0}'.format(ip_str)
+        return proxy_ip
+
+    def spider_opened(self, spider):
+        spider.logger.info('%s opened ProxyMiddleware' % spider.name)
