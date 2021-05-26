@@ -2,8 +2,10 @@
 #
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import random
 import time
 
+from fake_useragent import UserAgent
 from scrapy import signals
 
 # useful for handling different item types with a single interface
@@ -107,7 +109,27 @@ class SpiderDownloaderMiddleware:
 
 
 class SpiderUserAgentMiddleware(SpiderDownloaderMiddleware):
-    pass
+
+    def __init__(self):
+        self.user_agent = UserAgent(verify_ssl=False)
+        self.data = None
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def spider_opened(self, spider):
+        self.data = self.user_agent.data_browsers
+        spider.logger.info('SpiderUserAgentMiddleware is starting')
+
+    def process_request(self, request, spider):
+        rand_use = random.choice(
+            self.data.get(random.choice(['chrome', 'opera', 'firefox', 'internetexplorer', 'safari'])))
+        if rand_use:
+            request.headers.setdefault('User-Agent', rand_use)
+        return None
 
 
 class SpiderProxyMiddleware(SpiderDownloaderMiddleware):
@@ -120,9 +142,15 @@ class SpiderProxyMiddleware(SpiderDownloaderMiddleware):
     def from_crawler(cls, crawler):
         settings = crawler.settings
         server = connection.from_settings(settings)
+
         s = cls(server, settings)
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(s.spider_closed, signal=signals.spider_closed)
         return s
+
+    @staticmethod
+    def spider_closed(spider):
+        spider.logger.info('SpiderProxyMiddleware is closing')
 
     def process_request(self, request, spider):
         if self.settings.get('IS_PROXY'):
@@ -142,4 +170,4 @@ class SpiderProxyMiddleware(SpiderDownloaderMiddleware):
         return proxy_ip
 
     def spider_opened(self, spider):
-        spider.logger.info('%s opened ProxyMiddleware' % spider.name)
+        spider.logger.info('SpiderProxyMiddleware is starting')

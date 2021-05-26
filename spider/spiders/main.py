@@ -7,7 +7,8 @@
 import importlib
 import json
 
-from scrapy import Request
+from scrapy import Request, signals
+from scrapy_redis import defaults, connection
 from scrapy_redis.spiders import RedisSpider
 from scrapy_redis.utils import bytes_to_str
 
@@ -15,10 +16,90 @@ from scrapy_redis.utils import bytes_to_str
 class Spider(RedisSpider):
     name = 'spider'
 
-    def __init__(self):
+    def __init__(self, master=1):
         self._task = {}
         self._task_type = 0
         self.html = ''
+        self.is_master = master
+        self.fetch_data = None
+        self._master()
+
+    def _master(self):
+        try:
+            self.is_master = True if int(self.is_master) else False
+        except ValueError:
+            raise ValueError('启动参数master必须是0或者1,1:master,0:slave')
+
+    def setup_redis(self, crawler=None):
+        """Setup redis connection and idle signal.
+
+        This should be called after the spider has set its crawler object.
+        """
+        if self.server is not None:
+            return
+
+        if crawler is None:
+            # We allow optional crawler argument to keep backwards
+            # compatibility.
+            # XXX: Raise a deprecation warning.
+            crawler = getattr(self, 'crawler', None)
+
+        if crawler is None:
+            raise ValueError("crawler is required")
+
+        settings = crawler.settings
+
+        if self.redis_key is None:
+            self.redis_key = settings.get(
+                'REDIS_START_URLS_KEY', defaults.START_URLS_KEY,
+            )
+        if self.is_master:
+            self.redis_key = settings.get(
+                'REDIS_START_URLS_MASTER_KEY', defaults.START_URLS_KEY,
+            )
+
+        self.redis_key = self.redis_key % {'name': self.name}
+
+        if not self.redis_key.strip():
+            raise ValueError("redis_key must not be empty")
+
+        if self.redis_batch_size is None:
+            self.redis_batch_size = settings.getint(
+                'REDIS_START_URLS_BATCH_SIZE',
+                settings.getint('CONCURRENT_REQUESTS'),
+            )
+
+        try:
+            self.redis_batch_size = int(self.redis_batch_size)
+        except (TypeError, ValueError):
+            raise ValueError("redis_batch_size must be an integer")
+
+        if self.redis_encoding is None:
+            self.redis_encoding = settings.get('REDIS_ENCODING', defaults.REDIS_ENCODING)
+
+        self.logger.info("Reading start URLs from redis key '%(redis_key)s' "
+                         "(batch size: %(redis_batch_size)s, encoding: %(redis_encoding)s",
+                         self.__dict__)
+
+        self.server = connection.from_settings(crawler.settings)
+
+        if self.settings.getbool('REDIS_START_URLS_AS_SET', defaults.START_URLS_AS_SET):
+            self.fetch_data = self.server.spop
+        elif self.settings.getbool('REDIS_START_URLS_AS_ZSET', defaults.START_URLS_AS_ZSET):
+            self.fetch_data = self.pop_priority_queue
+        else:
+            self.fetch_data = self.pop_list_queue
+
+        # The idle signal is called when the spider has no requests left,
+        # that's when we will schedule new requests from redis queue
+        crawler.signals.connect(self.spider_idle, signal=signals.spider_idle)
+        crawler.signals.connect(self.engine_started, signal=signals.engine_started)
+
+    def engine_started(self):
+        if self.is_master:
+            self.logger.info("master spider being executed......")
+        else:
+            self.logger.info("slave spider being executed......")
 
     def make_request_from_data(self, data):
         """
