@@ -37,8 +37,8 @@ ROBOTSTXT_OBEY = False
 
 # Override the default request headers:
 DEFAULT_REQUEST_HEADERS = {
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en',
 }
 
 # Enable or disable spider middlewares
@@ -69,6 +69,17 @@ ITEM_PIPELINES = {
     'spider.pipelines.SpiderMongoPipeline': 300,
     'spider.pipelines.SpiderRedisPipeline': 200,
 }
+# scrapy-redis布隆过滤
+SCHEDULER = "scrapy_redis_bloomfilter.scheduler.Scheduler"
+DUPEFILTER_CLASS = "scrapy_redis_bloomfilter.dupefilter.RFPDupeFilter"
+# 持久化,不自动清空
+SCHEDULER_PERSIST = True
+SCHEDULER_FLUSH_ON_START = False
+# Number of Hash Functions to use, defaults to 6
+BLOOMFILTER_HASH_NUMBER = 6
+# Redis Memory Bit of Bloomfilter Usage, 30 means 2^30 = 128MB, defaults to 30
+BLOOMFILTER_BIT = 30
+
 # 采集数据情况统计INFLUXDB链接信息
 INFLUXDB_PARAMS = {
     'host': '172.16.0.6',
