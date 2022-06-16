@@ -80,7 +80,7 @@ class SpiderStatueStatistics:
         }
         if not self.client.write_points([influxdb_d]):
             raise IOError('写入influxdb失败！')
-        logger.info('influxdb start success!')
+        logger.info('influxdb start is starting')
 
     def engine_started(self):
         Timer(self.interval, self.handle_stat).start()

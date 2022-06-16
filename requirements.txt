@@ -13,11 +13,13 @@ filelock==3.7.1
 hyperlink==21.0.0
 idna==3.3
 incremental==21.3.0
+influxdb==5.3.1
 itemadapter==0.6.0
 itemloaders==1.0.4
 jmespath==1.0.0
 keras==2.9.0
 lxml==4.9.0
+msgpack==1.0.4
 numpy==1.22.4
 opencv-python==4.5.5.64
 packaging==21.3
@@ -31,6 +33,8 @@ PyDispatcher==2.0.5
 pymongo==4.1.1
 pyOpenSSL==22.0.0
 pyparsing==3.0.9
+python-dateutil==2.8.2
+pytz==2022.1
 queuelib==1.6.2
 redis==4.3.3
 requests==2.28.0

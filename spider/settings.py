@@ -60,7 +60,7 @@ DOWNLOADER_MIDDLEWARES = {
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
 EXTENSIONS = {
     'scrapy.extensions.telnet.TelnetConsole': None,
-    'spider.extensions.SpiderStatueStatistics': None,
+    'spider.extensions.SpiderStatueStatistics': 100,
 }
 
 # Configure item pipelines
@@ -82,10 +82,10 @@ BLOOMFILTER_BIT = 30
 
 # 采集数据情况统计INFLUXDB链接信息
 INFLUXDB_PARAMS = {
-    'host': '172.16.0.6',
+    'host': '127.0.0.1',
     'port': 8086,
-    # 'username': 'root',
-    # 'password': 'root',
+    'username': 'root',
+    'password': '123456',
     'database': 'spider',
 }
 MONGO_URI = 'mongodb://localhost:27017/'  # mongo链接地址
